@@ -58,3 +58,42 @@ pub struct TimeSlot {
     pub begin: Instant,
     pub end: Instant,
 }
+
+#[derive(Debug, FromRow)]
+pub struct WorkshopSchedule {
+    pub workshop_id: i32,
+    pub timeslot_id: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct RoomAvailable {
+    pub room_id: i32,
+    pub timeslot_id: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct WorkshopResponsible {
+    pub user_id: i32,
+    pub workshop_id: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct WorkshopRoomSchedule {
+    pub schedule_id: i32,
+    pub workshop_id: i32,
+    pub room_id: i32,
+    pub timeslot_id: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct ParticipantSchedule {
+    pub participant_id: i32,
+    pub schedule_id: i32,
+}
+
+#[derive(Debug, FromRow)]
+pub struct PrioritySelection {
+    pub participant_id: i32,
+    pub workshop_id: i32,
+    pub priority: i32,
+}
