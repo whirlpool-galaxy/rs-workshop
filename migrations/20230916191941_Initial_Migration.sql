@@ -28,6 +28,7 @@ CREATE TABLE workshop (
 	workshop_id serial NOT NULL,
 	"name" varchar NOT NULL,
 	description varchar NULL,
+	max_capacity int NULL,
 	CONSTRAINT workshop_pk PRIMARY KEY (workshop_id),
 	CONSTRAINT workshop_un UNIQUE ("name")
 );
