@@ -3,7 +3,7 @@ name = "rs-workshop"
 version = "0.0.1"
 authors = ["Jonathan \"Nath\" Schild <nath@j-schild.de>"]
 edition = "2021"
-description = "TBA"
+description = "Workshop participant and room scheduler. Designed for the Ophase at the Department of Computer Science of TU Darmstadt."
 license = "MIT"
 publish = false
 
