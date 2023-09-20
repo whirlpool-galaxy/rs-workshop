@@ -23,19 +23,21 @@ pub trait Rooms {
 }
 
 pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms: &mut dyn Rooms) {
-    // get_available_wt
+    let mut avail = rooms.get_available_wt();
     while !participants.is_empty() {
         let mut p = participants.dequeue();
-
         loop {
-            // optimise priority score
-            let schedule = vec![(0, 0)];
+            let schedule = optimise(&avail);
             if rooms.schedule_participant_to(&schedule) {
                 p.schedule(&schedule);
                 break;
             } else {
-                // update get_available_wt
+                avail = rooms.get_available_wt();
             }
         }
     }
+}
+
+pub fn optimise(_workshops: &Vec<(TimeslotID, WorkshopID)>) -> Vec<(TimeslotID, WorkshopID)> {
+    vec![(0, 0)]
 }
