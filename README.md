@@ -16,5 +16,10 @@ Workshop participant and room scheduler. Designed for the Ophase at the Departme
 - Install [Docker](https://docs.docker.com/engine/install/)
 - Install [Rust](https://www.rust-lang.org/tools/install)
 - Install sqlx `cargo install sqlx-cli`
-- Start DB server `docker compose -f docker-compose.test.yml up -d`
+- Start DB server `docker compose -f docker-compose.db.yml up -d`
 - Initialise DB `sqlx database setup`
+
+## Build Docker Image
+
+- `docker compose -f docker-compose.db.yml up -d`
+- `docker build ./ --allow=network.host`
