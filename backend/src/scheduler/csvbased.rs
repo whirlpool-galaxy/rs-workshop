@@ -1,14 +1,25 @@
+use std::collections::VecDeque;
 pub struct ParticipantQueue<P: super::Participant> {
-    _p: P,
+    content : VecDeque<P>,
+
 }
 
 impl<P: super::Participant> super::ParticipantQueue<P> for ParticipantQueue<P> {
     fn dequeue(&mut self) -> P {
-        todo!()
+        self.content.pop_front().expect("Wrong type in ParticipantQueue")
     }
 
     fn is_empty(&self) -> bool {
-        todo!()
+        self.content.is_empty()
+    }
+}
+impl <P: super::Participant> ParticipantQueue<P>{
+    fn new()->Self{
+        Self{content : VecDeque::new()}
+
+    }
+    fn enqueue(&mut self, input : P){
+        self.content.push_back(input);
     }
 }
 
