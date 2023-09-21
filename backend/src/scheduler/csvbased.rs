@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::collections::HashMap;
-use std::hash::Hash;
+
 pub struct ParticipantQueue<P: super::Participant> {
     content : VecDeque<P>,
 
@@ -26,18 +26,28 @@ impl <P: super::Participant> ParticipantQueue<P>{
 }
 
 pub struct Participant {
-    priorityList : HashMap<super::WorkshopID, super::Priority>,
-    scheduledFor : HashMap<super::TimeslotID, super::WorkshopID>,
+    priority_list : HashMap<super::WorkshopID, super::Priority>,
+    scheduled_for : HashMap<super::TimeslotID, super::WorkshopID>,
 }
 
 impl super::Participant for Participant {
     fn get_priority_for(&self, _workshop_id: super::WorkshopID) -> super::Priority {
-        *self.priorityList.get(&_workshop_id).expect("No Priority for Workshop ID found")
+        *self.priority_list.get(&_workshop_id).expect("No Priority for Workshop ID found")
     }
 
-    fn schedule(&mut self, _schedule: &Vec<(super::TimeslotID, super::WorkshopID)>) {
-        self.scheduledFor.insert(_schedule[0].0, _schedule[0].1);
+    fn schedule(&mut self, _schedule:  &Vec<(super::TimeslotID, super::WorkshopID)>) {
+        self.scheduled_for.insert(_schedule[0].0, _schedule[0].1);
     }
+}
+
+impl Participant{
+    fn new()->Self{
+        Self{priority_list:HashMap::new(), scheduled_for:HashMap::new()}
+    }
+    fn add_to_priority_list(&mut self, to_add : &Vec<(super::WorkshopID,super::Priority)>){
+        self.priority_list.insert(to_add[0].0, to_add[0].1);
+    }
+    
 }
 
 pub struct Rooms {}
