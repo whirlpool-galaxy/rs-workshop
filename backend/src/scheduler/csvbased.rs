@@ -49,3 +49,15 @@ impl super::Rooms for Rooms {
         todo!()
     }
 }
+
+#[cfg(test)]
+mod tests{
+    use crate::scheduler::ParticipantQueue;
+
+    use super::*;
+
+    #[test]
+    fn testPartQueue(){
+        assert!(1==2);
+    }
+}
