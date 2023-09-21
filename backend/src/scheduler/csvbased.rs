@@ -1,4 +1,6 @@
 use std::collections::VecDeque;
+use std::collections::HashMap;
+use std::hash::Hash;
 pub struct ParticipantQueue<P: super::Participant> {
     content : VecDeque<P>,
 
@@ -23,15 +25,18 @@ impl <P: super::Participant> ParticipantQueue<P>{
     }
 }
 
-pub struct Participant {}
+pub struct Participant {
+    priorityList : HashMap<super::WorkshopID, super::Priority>,
+    scheduledFor : HashMap<super::TimeslotID, super::WorkshopID>,
+}
 
 impl super::Participant for Participant {
     fn get_priority_for(&self, _workshop_id: super::WorkshopID) -> super::Priority {
-        todo!()
+        *self.priorityList.get(&_workshop_id).expect("No Priority for Workshop ID found")
     }
 
     fn schedule(&mut self, _schedule: &Vec<(super::TimeslotID, super::WorkshopID)>) {
-        todo!()
+        self.scheduledFor.insert(_schedule[0].0, _schedule[0].1);
     }
 }
 
