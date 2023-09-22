@@ -19,7 +19,7 @@ pub trait Participant {
 
 pub trait Rooms {
     fn schedule_participant_to(&mut self, schedule: &Vec<(TimeslotID, WorkshopID)>) -> bool;
-    fn get_available_wt(&self) -> Vec<(TimeslotID, WorkshopID)>;
+    fn get_available_wt(&self) -> Vec<(TimeslotID, Vec<WorkshopID>)>;
 }
 
 pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms: &mut dyn Rooms) {
@@ -38,6 +38,6 @@ pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms
     }
 }
 
-pub fn optimise(_workshops: &Vec<(TimeslotID, WorkshopID)>) -> Vec<(TimeslotID, WorkshopID)> {
+pub fn optimise(_workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>) -> Vec<(TimeslotID, WorkshopID)> {
     vec![(0, 0)]
 }
