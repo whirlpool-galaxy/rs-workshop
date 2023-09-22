@@ -1,3 +1,5 @@
+use std::collections::{BinaryHeap, HashSet};
+
 pub mod csvbased;
 pub mod dbbased;
 
@@ -27,7 +29,7 @@ pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms
     while !participants.is_empty() {
         let mut p = participants.dequeue();
         loop {
-            let schedule = optimise(&avail);
+            let schedule = optimise(&avail, &p);
             if rooms.schedule_participant_to(&schedule) {
                 p.schedule(&schedule);
                 break;
@@ -38,6 +40,44 @@ pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms
     }
 }
 
-pub fn optimise(_workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>) -> Vec<(TimeslotID, WorkshopID)> {
+pub fn optimise(
+    _workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
+    _participant: &dyn Participant,
+) -> Vec<(TimeslotID, WorkshopID)> {
     vec![(0, 0)]
+}
+
+fn optimise_rec(
+    workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
+    participant: &dyn Participant,
+    selection: &mut Vec<WorkshopID>,
+    result: &mut Vec<(Priority, Vec<(TimeslotID, WorkshopID)>)>,
+) {
+    if selection.len() == workshops.len() {
+        todo!()
+    } else {
+        let s = selection.len() - 1;
+        let workshop_pt = match workshops.get(s) {
+            Some(w) => &w.1,
+            None => panic!("Internal Error at optimise_rec"),
+        };
+
+        for w in workshop_pt {
+            selection.push(*w);
+            optimise_rec(workshops, participant, selection, result);
+            selection.pop();
+        }
+    }
+}
+
+fn check(schedule: &Vec<(TimeslotID, WorkshopID)>) -> bool {
+    let mut check_workshop = HashSet::<WorkshopID>::new();
+
+    for s in schedule {
+        if !check_workshop.insert(s.1) {
+            return false;
+        }
+    }
+
+    true
 }
