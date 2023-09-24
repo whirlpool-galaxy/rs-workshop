@@ -52,6 +52,7 @@ pub fn optimise(
     max_score.1
 }
 
+/// selection must be ordered so that a index of selection maps to the timeslot of the workshop
 fn optimise_rec(
     workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
     participant: &dyn Participant,
@@ -59,10 +60,12 @@ fn optimise_rec(
     max_score: &mut (Priority, Vec<(TimeslotID, WorkshopID)>),
 ) {
     if selection.len() == workshops.len() {
-        let mut score = 0;
+        // recursion base case
 
-        let mut r_vec = vec![];
+        let mut score = 0; // priority score `selection` case.
+        let mut r_vec = vec![]; // schedule vector
 
+        // iterate over selected workshops, calculate score and create time table
         for (idx, w) in selection.into_iter().enumerate() {
             score += participant.get_priority_for(*w);
 
@@ -70,27 +73,33 @@ fn optimise_rec(
                 workshops
                     .get(idx)
                     .expect("Internal Error at optimise_rec")
-                    .0,
+                    .0, // get TimeslotID for workshop
                 *w,
             ));
         }
 
         if score > max_score.0 {
-            max_score.0 = score;
-            max_score.1 = r_vec;
+            // update score
+            *max_score = (score, r_vec);
         }
     } else {
+        // recursion step
+
+        // get level of recursive decent
         let s = selection.len() - 1;
 
-        let workshop_pt = match workshops.get(s) {
-            Some(w) => &w.1,
-            None => panic!("Internal Error at optimise_rec"),
-        };
+        // get available workshops
+        let workshop_pt = &workshops.get(s).expect("Internal Error at optimise_rec").1;
 
         for w in workshop_pt {
             if !selection.contains(w) {
+                // check if workshop already in selection
+
+                // add workshop to selection
                 selection.push(*w);
+                // recursive decent
                 optimise_rec(workshops, participant, selection, max_score);
+                // remove workshop from select, if score was optimal the selection is stored in max_score and can be destroyed hier.
                 selection.pop();
             }
         }
