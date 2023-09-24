@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::hash::Hash;
 
 use super::TimeslotID;
 use super::WorkshopID;
@@ -64,39 +65,29 @@ impl Participant {
 }
 
 pub struct Rooms {
-    room_of_workshop_at_timeslot: HashMap<(super::TimeslotID, super::WorkshopID), super::RoomID>,
-    room_occupancy_at_timeslot: HashMap<(super::RoomID, super::TimeslotID), i32>,
     available_workshops: Vec<(super::TimeslotID, Vec<super::WorkshopID>)>,
-    // angenommen, die räume sind zu allen timeslots verfügbar!
-    roomlist_with_capacity: HashMap<super::RoomID, i32>,
-    room_in_use_from_workshop_at_timestamp:
-        HashMap<super::RoomID, (super::TimeslotID, super::RoomID)>,
+    // angenommen, die räume sind zu allen timeslots verfügbar! && raumliste ist sortiert nach raumgröße (aufsteigend) !!
+    roomlist_with_capacity: Vec<(super::RoomID, i32)>,
+
+    // these three hashmaps form together a matrix that associates a Room together with a timeslot to the according workshop (which is only unique with its timestamp)
+    room_and_timeslot_to_workshop:
+        HashMap<(super::TimeslotID, super::RoomID), (super::TimeslotID, super::WorkshopID)>, // i also map to timeslot and workshop id because of convenience reasons
+    room_and_workshop_to_timeslot: HashMap<(super::RoomID, super::WorkshopID), super::TimeslotID>,
+    timeslot_and_workshop_to_room: HashMap<(super::TimeslotID, super::WorkshopID), super::RoomID>,
+
+    // how many people are already visiting the workshop
+    workshop_occupancy: HashMap<(super::TimeslotID, super::WorkshopID), i32>,
 }
 impl Rooms {
     pub fn new() -> Self {
         Self {
-            room_of_workshop_at_timeslot: HashMap::new(),
-            room_occupancy_at_timeslot: HashMap::new(),
             available_workshops: Vec::new(),
-            roomlist_with_capacity: HashMap::new(),
+            roomlist_with_capacity: Vec::new(),
+            room_and_timeslot_to_workshop: HashMap::new(),
+            room_and_workshop_to_timeslot: HashMap::new(),
+            timeslot_and_workshop_to_room: HashMap::new(),
+            workshop_occupancy: HashMap::new(),
         }
-    }
-
-    fn insert_tuple_roomlist(
-        &mut self,
-        room_id: super::RoomID,
-        workshop_timeslot_tuple: (super::WorkshopID, super::TimeslotID),
-    ) {
-        self.room_of_workshop_at_timeslot
-            .insert(workshop_timeslot_tuple, room_id);
-    }
-
-    fn remove_tuple_roomlist(
-        &mut self,
-        workshop_timeslot_tuple: (super::WorkshopID, super::TimeslotID),
-    ) {
-        self.room_of_workshop_at_timeslot
-            .remove(&workshop_timeslot_tuple);
     }
 
     pub fn add_available_workshop(
@@ -114,26 +105,46 @@ impl Rooms {
         self.available_workshops.push((timeslot, newvec));
     }
 
-    fn give_workshop_bigger_room(
+    fn give_workshop_a_bigger_room(
         &mut self,
-        work_timeslot_tuple: (super::TimeslotID, super::WorkshopID),
-    ) {
-        let mut bigger_rooms: Vec<(super::RoomID, i32)> = Vec::new();
-        let current_capacity = *self
+        workshop_and_timeslot: (super::TimeslotID, super::WorkshopID),
+    ) -> bool {
+        let room_id: super::RoomID = *self
+            .timeslot_and_workshop_to_room
+            .get(&workshop_and_timeslot)
+            .expect("no valid roomid");
+        let index = self
             .roomlist_with_capacity
-            .get(
-                self.room_of_workshop_at_timeslot
-                    .get(&work_timeslot_tuple)
-                    .expect("no room found"),
-            )
-            .expect("no capacity found");
-        for rooms in self.roomlist_with_capacity.clone() {
-            if rooms.1 > current_capacity {
-                bigger_rooms.push(rooms);
+            .iter()
+            .position(|&x| x.0 == room_id)
+            .unwrap();
+        if index + 1 >= self.roomlist_with_capacity.len() {
+            // no bigger room found
+            return false;
+        }
+        // this loop invokes reallocate
+        loop {
+            let in_use = self.room_and_timeslot_to_workshop.get(&(
+                self.roomlist_with_capacity
+                    .get(index + 1)
+                    .expect("index in roomlist not found")
+                    .0,
+                workshop_and_timeslot.1,
+            ));
+            if in_use.is_none() {
+                // room is not in use
+                todo!(); // assign me!!
+                return true;
+            }
+            let next_workshop = *in_use.unwrap();
+            let next_workshop_occupancy = *self.workshop_occupancy.get(&next_workshop).unwrap();
+            todo!(); // full bubble sort of all bigger rooms and their workshops needed !!
+            if next_workshop_occupancy <= self.roomlist_with_capacity[index].1 {
+                todo!(); // swap is possible
+                         // change the workshop rooms
+                return true;
             }
         }
-        bigger_rooms.sort_by(|&x, &y| x.0.partial_cmp(&y.0).unwrap());
-        // try to assign workshop to bigger_rooms[0]
     }
 }
 
@@ -143,29 +154,6 @@ impl super::Rooms for Rooms {
         &mut self,
         _schedule: &Vec<(super::TimeslotID, super::WorkshopID)>,
     ) -> bool {
-        // create copy to work with, so in case of failure changes will be discarded
-        let copy_of_room_of_workshop_and_timeslot = self.room_of_workshop_at_timeslot.clone();
-
-        for selection in _schedule {
-            todo!(); // Problem is: if a workshop has no room, this would panic. I have to choose a design that either 1) initialises each workshop with a room, or 2) change code here so if a workshop has no room it gets one
-            let room: super::RoomID = *self
-                .room_of_workshop_at_timeslot
-                .get(selection)
-                .expect("Expected RoomID");
-            if (*(self
-                .room_occupancy_at_timeslot
-                .get(&(room, selection.1))
-                .expect("Room Occupancy expected"))
-                + 1)
-                < *self
-                    .roomlist_with_capacity
-                    .get(&room)
-                    .expect("Expected a Capacity")
-            {
-                // in this case, the capacity of the room is big enough to contain an additional participant, so we just add him to the occupancy
-            }
-        }
-
         return false;
     }
 
