@@ -105,3 +105,49 @@ fn optimise_rec(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::{optimise_rec, Priority, WorkshopID};
+
+    struct Participant {
+        hash_map: HashMap<WorkshopID, Priority>,
+    }
+
+    impl Participant {
+        pub fn new(hash_map: HashMap<WorkshopID, Priority>) -> Self {
+            Self { hash_map }
+        }
+    }
+
+    impl super::Participant for Participant {
+        fn get_priority_for(&self, workshop_id: WorkshopID) -> Priority {
+            *self.hash_map.get(&workshop_id).unwrap()
+        }
+
+        fn schedule(&mut self, _schedule: &Vec<(super::TimeslotID, WorkshopID)>) {
+            unimplemented!()
+        }
+    }
+
+    #[test]
+    fn optimise_rec_test() {
+        let workshops = vec![(1, vec![1, 2, 3]), (2, vec![3, 5, 6])];
+        let mut hm = HashMap::new();
+        hm.insert(1, 5);
+        hm.insert(2, 4);
+        hm.insert(3, 3);
+        hm.insert(5, 2);
+        hm.insert(6, 1);
+        let participant = Participant::new(hm);
+
+        let mut selection = vec![];
+        let mut max_score = (0, vec![]);
+
+        optimise_rec(&workshops, &participant, &mut selection, &mut max_score);
+
+        dbg!(&max_score);
+    }
+}
