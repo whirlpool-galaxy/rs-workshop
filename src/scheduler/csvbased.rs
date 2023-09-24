@@ -34,7 +34,7 @@ impl super::Rooms for Rooms {
         todo!()
     }
 
-    fn get_available_wt(&self) -> Vec<(super::TimeslotID, super::WorkshopID)> {
+    fn get_available_wt(&self) -> Vec<(super::TimeslotID, Vec<super::WorkshopID>)> {
         todo!()
     }
 }
