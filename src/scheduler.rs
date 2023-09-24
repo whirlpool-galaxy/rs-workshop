@@ -1,5 +1,3 @@
-use std::collections::{BinaryHeap, HashSet};
-
 pub mod csvbased;
 pub mod dbbased;
 
@@ -41,10 +39,15 @@ pub fn schedule(participants: &mut dyn ParticipantQueue<impl Participant>, rooms
 }
 
 pub fn optimise(
-    _workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
-    _participant: &dyn Participant,
+    workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
+    participant: &dyn Participant,
 ) -> Vec<(TimeslotID, WorkshopID)> {
-    vec![(0, 0)]
+    let mut selection = vec![];
+    let mut result = vec![];
+
+    optimise_rec(workshops, participant, &mut selection, &mut result);
+
+    vec![]
 }
 
 fn optimise_rec(
@@ -54,30 +57,37 @@ fn optimise_rec(
     result: &mut Vec<(Priority, Vec<(TimeslotID, WorkshopID)>)>,
 ) {
     if selection.len() == workshops.len() {
-        todo!()
+        let mut score = 0;
+
+        let mut r_vec = vec![];
+
+        for (idx, w) in selection.into_iter().enumerate() {
+            score += participant.get_priority_for(*w);
+
+            r_vec.push((
+                workshops
+                    .get(idx)
+                    .expect("Internal Error at optimise_rec")
+                    .0,
+                *w,
+            ));
+        }
+
+        result.push((score, r_vec));
     } else {
         let s = selection.len() - 1;
+
         let workshop_pt = match workshops.get(s) {
             Some(w) => &w.1,
             None => panic!("Internal Error at optimise_rec"),
         };
 
         for w in workshop_pt {
-            selection.push(*w);
-            optimise_rec(workshops, participant, selection, result);
-            selection.pop();
+            if !selection.contains(w) {
+                selection.push(*w);
+                optimise_rec(workshops, participant, selection, result);
+                selection.pop();
+            }
         }
     }
-}
-
-fn check(schedule: &Vec<(TimeslotID, WorkshopID)>) -> bool {
-    let mut check_workshop = HashSet::<WorkshopID>::new();
-
-    for s in schedule {
-        if !check_workshop.insert(s.1) {
-            return false;
-        }
-    }
-
-    true
 }
