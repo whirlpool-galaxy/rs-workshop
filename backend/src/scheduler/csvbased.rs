@@ -2,6 +2,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
 
+use super::TimeslotID;
+use super::WorkshopID;
+
 pub struct ParticipantQueue<P: super::Participant> {
     content: VecDeque<P>,
 }
@@ -66,6 +69,8 @@ pub struct Rooms {
     available_workshops: Vec<(super::TimeslotID, Vec<super::WorkshopID>)>,
     // angenommen, die räume sind zu allen timeslots verfügbar!
     roomlist_with_capacity: HashMap<super::RoomID, i32>,
+    room_in_use_from_workshop_at_timestamp:
+        HashMap<super::RoomID, (super::TimeslotID, super::RoomID)>,
 }
 impl Rooms {
     pub fn new() -> Self {
@@ -107,6 +112,28 @@ impl Rooms {
         }
         let newvec = vec![workshop_id];
         self.available_workshops.push((timeslot, newvec));
+    }
+
+    fn give_workshop_bigger_room(
+        &mut self,
+        work_timeslot_tuple: (super::TimeslotID, super::WorkshopID),
+    ) {
+        let mut bigger_rooms: Vec<(super::RoomID, i32)> = Vec::new();
+        let current_capacity = *self
+            .roomlist_with_capacity
+            .get(
+                self.room_of_workshop_at_timeslot
+                    .get(&work_timeslot_tuple)
+                    .expect("no room found"),
+            )
+            .expect("no capacity found");
+        for rooms in self.roomlist_with_capacity.clone() {
+            if rooms.1 > current_capacity {
+                bigger_rooms.push(rooms);
+            }
+        }
+        bigger_rooms.sort_by(|&x, &y| x.0.partial_cmp(&y.0).unwrap());
+        // try to assign workshop to bigger_rooms[0]
     }
 }
 
