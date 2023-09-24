@@ -43,18 +43,20 @@ pub fn optimise(
     participant: &dyn Participant,
 ) -> Vec<(TimeslotID, WorkshopID)> {
     let mut selection = vec![];
-    let mut result = vec![];
+    let mut max_score = (0, vec![]);
 
-    optimise_rec(workshops, participant, &mut selection, &mut result);
+    optimise_rec(workshops, participant, &mut selection, &mut max_score);
 
-    vec![]
+    assert_ne!(max_score.0, 0, "Internal Error at optimise");
+
+    max_score.1
 }
 
 fn optimise_rec(
     workshops: &Vec<(TimeslotID, Vec<WorkshopID>)>,
     participant: &dyn Participant,
     selection: &mut Vec<WorkshopID>,
-    result: &mut Vec<(Priority, Vec<(TimeslotID, WorkshopID)>)>,
+    max_score: &mut (Priority, Vec<(TimeslotID, WorkshopID)>),
 ) {
     if selection.len() == workshops.len() {
         let mut score = 0;
@@ -73,7 +75,10 @@ fn optimise_rec(
             ));
         }
 
-        result.push((score, r_vec));
+        if score > max_score.0 {
+            max_score.0 = score;
+            max_score.1 = r_vec;
+        }
     } else {
         let s = selection.len() - 1;
 
@@ -85,7 +90,7 @@ fn optimise_rec(
         for w in workshop_pt {
             if !selection.contains(w) {
                 selection.push(*w);
-                optimise_rec(workshops, participant, selection, result);
+                optimise_rec(workshops, participant, selection, max_score);
                 selection.pop();
             }
         }
