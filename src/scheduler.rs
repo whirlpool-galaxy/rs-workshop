@@ -86,7 +86,7 @@ fn optimise_rec(
         // recursion step
 
         // get level of recursive decent
-        let s = selection.len() - 1;
+        let s = selection.len();
 
         // get available workshops
         let workshop_pt = &workshops.get(s).expect("Internal Error at optimise_rec").1;
