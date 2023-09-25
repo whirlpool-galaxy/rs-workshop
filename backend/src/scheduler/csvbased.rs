@@ -105,6 +105,58 @@ impl Rooms {
         self.available_workshops.push((timeslot, newvec));
     }
 
+    // tries to swap a with b, if occupancy of a is bigger than occupancy of b AND both a and b fit into the other room, returns true if swapped
+    // assumes that b is in a bigger room than a, and timeslot of a and b are the same
+    fn try_swap_workshops(
+        &mut self,
+        workshop_a: (super::TimeslotID, super::WorkshopID),
+        workshop_b: (super::TimeslotID, super::WorkshopID),
+    ) -> bool {
+        let room_a = *self
+            .timeslot_and_workshop_to_room
+            .get(&workshop_a)
+            .expect("roomid");
+        let room_b = *self
+            .timeslot_and_workshop_to_room
+            .get(&workshop_b)
+            .expect("roomid");
+        let capacity_a = self.roomlist_with_capacity[self
+            .roomlist_with_capacity
+            .iter()
+            .position(|&x| x.0 == room_a)
+            .unwrap()]
+        .1;
+        let capacity_b = self.roomlist_with_capacity[self
+            .roomlist_with_capacity
+            .iter()
+            .position(|&x| x.0 == room_b)
+            .unwrap()]
+        .1;
+        let occupancy_a = *self.workshop_occupancy.get(&workshop_a).expect("occupancy");
+        let occupancy_b = *self.workshop_occupancy.get(&workshop_b).expect("occupancy");
+
+        if occupancy_a > occupancy_b {
+            // swap is recommended
+            if occupancy_a <= capacity_b && occupancy_b <= capacity_a {
+                // able to swap
+                self.room_and_timeslot_to_workshop
+                    .insert((room_a, workshop_b.0), workshop_b);
+                self.room_and_timeslot_to_workshop
+                    .insert((room_b, workshop_a.0), workshop_a);
+                self.room_and_workshop_to_timeslot
+                    .insert((room_a, workshop_b.1), workshop_b.0);
+                self.room_and_workshop_to_timeslot
+                    .insert((room_b, workshop_a.1), workshop_a.0);
+                self.timeslot_and_workshop_to_room
+                    .insert(workshop_b, room_a);
+                self.timeslot_and_workshop_to_room
+                    .insert(workshop_a, room_b);
+                return true;
+            }
+        }
+        return false;
+    }
+
     fn give_workshop_a_bigger_room(
         &mut self,
         workshop_and_timeslot: (super::TimeslotID, super::WorkshopID),
