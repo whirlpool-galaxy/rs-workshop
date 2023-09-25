@@ -3,6 +3,9 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+use super::ParticipantID;
+use super::Priority;
+use super::RoomID;
 use super::TimeslotID;
 use super::WorkshopID;
 
@@ -90,6 +93,18 @@ impl Rooms {
         }
     }
 
+    fn get_room_of_workshop(&self, workshop: (TimeslotID, WorkshopID)) -> Option<&RoomID> {
+        return self.timeslot_and_workshop_to_room.get(&workshop);
+    }
+
+    fn set_occupancy(&mut self, amount: i32, workshop: (TimeslotID, WorkshopID)) {
+        self.workshop_occupancy.insert(workshop, amount);
+    }
+
+    pub fn add_roomlist_with_occupancy(&mut self, rooml_with_capa: &mut Vec<(super::RoomID, i32)>) {
+        self.roomlist_with_capacity.append(rooml_with_capa);
+    }
+
     pub fn add_available_workshop(
         &mut self,
         timeslot: super::TimeslotID,
@@ -105,21 +120,54 @@ impl Rooms {
         self.available_workshops.push((timeslot, newvec));
     }
 
+    pub fn add_workshop_timeslot_tuple(
+        &mut self,
+        timeslot_workshop: (super::TimeslotID, super::WorkshopID),
+    ) -> bool {
+        for room in self.roomlist_with_capacity.clone() {
+            if self
+                .room_and_timeslot_to_workshop
+                .get(&(room.0, timeslot_workshop.0))
+                .is_none()
+            {
+                // not yet used room found, workshop gets assigned this room
+                self.add_available_workshop(timeslot_workshop.0, timeslot_workshop.1);
+                self.room_and_timeslot_to_workshop
+                    .insert((room.0, timeslot_workshop.0), timeslot_workshop);
+                self.room_and_workshop_to_timeslot
+                    .insert((room.0, timeslot_workshop.1), timeslot_workshop.0);
+                self.timeslot_and_workshop_to_room
+                    .insert(timeslot_workshop, room.0);
+
+                self.workshop_occupancy.insert(timeslot_workshop, 0);
+
+                return true;
+            }
+        }
+        return false;
+    }
+
     // tries to swap a with b, if occupancy of a is bigger than occupancy of b AND both a and b fit into the other room, returns true if swapped
     // assumes that b is in a bigger room than a, and timeslot of a and b are the same
+    // if workshop a is none, then it will always try to swap with b, but if b is none, it tries to not swap
     fn try_swap_workshops(
         &mut self,
-        workshop_a: (super::TimeslotID, super::WorkshopID),
-        workshop_b: (super::TimeslotID, super::WorkshopID),
+        workshop_a: Option<&(super::TimeslotID, super::WorkshopID)>,
+        room_a: RoomID,
+        workshop_b: Option<&(super::TimeslotID, super::WorkshopID)>,
+        room_b: RoomID,
     ) -> bool {
-        let room_a = *self
-            .timeslot_and_workshop_to_room
-            .get(&workshop_a)
-            .expect("roomid");
-        let room_b = *self
-            .timeslot_and_workshop_to_room
-            .get(&workshop_b)
-            .expect("roomid");
+        if workshop_b.is_none() {
+            return false;
+        }
+        let workshop_b = workshop_b.unwrap();
+        let mut occupancy_a: i32 = 0;
+        if !workshop_a.is_none() {
+            occupancy_a = *self
+                .workshop_occupancy
+                .get(&workshop_a.unwrap())
+                .expect("occupancy");
+        }
         let capacity_a = self.roomlist_with_capacity[self
             .roomlist_with_capacity
             .iter()
@@ -132,29 +180,61 @@ impl Rooms {
             .position(|&x| x.0 == room_b)
             .unwrap()]
         .1;
-        let occupancy_a = *self.workshop_occupancy.get(&workshop_a).expect("occupancy");
         let occupancy_b = *self.workshop_occupancy.get(&workshop_b).expect("occupancy");
+
+        if workshop_a.is_none() {
+            if occupancy_b <= capacity_a {
+                self.room_and_timeslot_to_workshop
+                    .insert((room_a, workshop_b.0), *workshop_b);
+                self.room_and_workshop_to_timeslot
+                    .insert((room_a, workshop_b.1), workshop_b.0);
+                self.timeslot_and_workshop_to_room
+                    .insert(*workshop_b, room_a);
+                return true;
+            }
+            return false;
+        }
+        // if a would be none, the function should have returned by now
+        let workshop_a = workshop_a.unwrap();
 
         if occupancy_a > occupancy_b {
             // swap is recommended
             if occupancy_a <= capacity_b && occupancy_b <= capacity_a {
                 // able to swap
                 self.room_and_timeslot_to_workshop
-                    .insert((room_a, workshop_b.0), workshop_b);
+                    .insert((room_a, workshop_b.0), *workshop_b);
                 self.room_and_timeslot_to_workshop
-                    .insert((room_b, workshop_a.0), workshop_a);
+                    .insert((room_b, workshop_a.0), *workshop_a);
                 self.room_and_workshop_to_timeslot
                     .insert((room_a, workshop_b.1), workshop_b.0);
                 self.room_and_workshop_to_timeslot
                     .insert((room_b, workshop_a.1), workshop_a.0);
                 self.timeslot_and_workshop_to_room
-                    .insert(workshop_b, room_a);
+                    .insert(*workshop_b, room_a);
                 self.timeslot_and_workshop_to_room
-                    .insert(workshop_a, room_b);
+                    .insert(*workshop_a, room_b);
                 return true;
             }
         }
         return false;
+    }
+
+    // takes the index from which the bubble sort gets started (ignoring everything on its "left")
+    fn room_bubblesort(&mut self, room_start_index: usize, timeslot: super::TimeslotID) {
+        for n in self.roomlist_with_capacity.len()..1 {
+            for i in room_start_index..n - 1 {
+                self.try_swap_workshops(
+                    self.room_and_timeslot_to_workshop
+                        .clone()
+                        .get(&(self.roomlist_with_capacity[i].0, timeslot)),
+                    self.roomlist_with_capacity[i].0,
+                    self.room_and_timeslot_to_workshop
+                        .clone()
+                        .get(&(self.roomlist_with_capacity[i + 1].0, timeslot)),
+                    self.roomlist_with_capacity[i + 1].0,
+                );
+            }
+        }
     }
 
     fn give_workshop_a_bigger_room(
@@ -185,15 +265,14 @@ impl Rooms {
             ));
             if in_use.is_none() {
                 // room is not in use
-                todo!(); // assign me!!
+                //todo:  assign me!!
                 return true;
             }
             let next_workshop = *in_use.unwrap();
             let next_workshop_occupancy = *self.workshop_occupancy.get(&next_workshop).unwrap();
-            todo!(); // full bubble sort of all bigger rooms and their workshops needed !!
+            // full bubble sort of all bigger rooms and their workshops needed !!
             if next_workshop_occupancy <= self.roomlist_with_capacity[index].1 {
-                todo!(); // swap is possible
-                         // change the workshop rooms
+                // change the workshop rooms
                 return true;
             }
         }
@@ -238,5 +317,23 @@ mod tests {
         assert!(!room.get_available_wt().is_empty());
         room.add_available_workshop(1, 420);
         assert_eq!(room.get_available_wt(), vec![(1, vec![69, 420])]);
+    }
+
+    #[test]
+    fn test_room_bubblesort() {
+        let mut room = Rooms::new();
+        let mut roomlist_vec: Vec<(RoomID, i32)> =
+            vec![(1, 10), (2, 15), (3, 20), (4, 20), (5, 25)];
+        room.add_roomlist_with_occupancy(&mut roomlist_vec);
+        let compare_list: Vec<(RoomID, i32)> = vec![(1, 10), (2, 15), (3, 20), (4, 20), (5, 25)];
+        assert_eq!(room.roomlist_with_capacity, compare_list);
+        room.add_available_workshop(1, 1);
+        let compare_vec: Vec<(TimeslotID, Vec<WorkshopID>)> = vec![(1, vec![1])];
+        assert_eq!(room.get_available_wt(), compare_vec);
+        room.set_occupancy(9, (1, 1));
+        room.add_available_workshop(1, 2);
+        room.set_occupancy(8, (1, 2));
+        room.try_swap_workshops(Some(&(1, 1)), 1, Some(&(1, 2)), 2);
+        assert!(*room.get_room_of_workshop((1, 1)).unwrap() == 2);
     }
 }
