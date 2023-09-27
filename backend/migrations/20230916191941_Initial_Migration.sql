@@ -2,6 +2,8 @@ CREATE TABLE participant (
 	participant_id serial NOT NULL,
 	initial_access_code char(10) NULL,
 	username char(64) NULL,
+	batch int NOT NULL,
+	"committed" bool NOT NULL DEFAULT false,
 	CONSTRAINT participant_pk PRIMARY KEY (participant_id)
 );
 
