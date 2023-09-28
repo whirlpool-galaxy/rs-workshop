@@ -1,3 +1,9 @@
+CREATE TABLE session (
+	"key" bytea NOT NULL,
+	val text NOT NULL,
+	CONSTRAINT session_pk PRIMARY KEY ("key")
+);
+
 CREATE TABLE participant (
 	participant_id serial NOT NULL,
 	initial_access_code char(10) NULL,
