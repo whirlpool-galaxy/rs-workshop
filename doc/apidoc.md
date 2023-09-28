@@ -17,7 +17,6 @@ If sign in fails: `401 Unauthorized`.
 
 ### Workshops
 
-
 `GET /workshops/list` Get all workshops with names and description.
 ```json
 {
@@ -49,7 +48,7 @@ If workshop selection closed: `403 Forbidden`.
 ```
 If workshop selection results not published yet: `403 Forbidden`.
 
-`POST /workshop/priority` Submit current participants priority list to the server. Requires a unique priority for every workshop.
+`POST /workshops/priority` Submit current participants priority list to the server. Requires a unique priority for every workshop.
 ```json
 {
     "selection": [
@@ -62,7 +61,7 @@ If workshop selection results not published yet: `403 Forbidden`.
 ```
 If priorities are committed, fails with: `403 Forbidden`.
 
-`POST /workshop/priority/commit` Commits the priorities the current participants has chosen.
+`POST /workshops/priority/commit` Commits the priorities the current participants has chosen.
 
 ## Admin
 
@@ -90,7 +89,9 @@ If sign in fails: `401 Unauthorized`.
 
 `GET /accesscodes/all` Return all access codes.
 
-`GET /accesscode/{username}` Returns the access code of username.
+`GET /accesscodes/{username}` Returns the access code of username.
+
+`POST /schedule` Starts scheduling participants.
 
 `GET /schedule/rooms`
 ```json
