@@ -1,7 +1,12 @@
 use actix_web::{
     get, post,
-    web::{scope, ServiceConfig},
+    web::{scope, Data, ServiceConfig},
     HttpResponse, Responder,
+};
+
+use crate::{
+    api::session::{check_session, SessionState},
+    DataBase,
 };
 
 pub fn participant_config(cfg: &mut ServiceConfig) {
@@ -16,8 +21,11 @@ pub fn participant_config(cfg: &mut ServiceConfig) {
 }
 
 #[post("/signin")]
-async fn signin() -> impl Responder {
-    HttpResponse::Ok()
+async fn signin(db: Data<DataBase>) -> impl Responder {
+    match check_session(db.db.clone(), [0; 16]).await.unwrap() {
+        SessionState::SignedOut => HttpResponse::Ok().body("SignedOut"),
+        SessionState::SignedIn(s) => HttpResponse::Ok().body(format!("SignedIn {}", s)),
+    }
 }
 
 #[get("/workshops/list")]
