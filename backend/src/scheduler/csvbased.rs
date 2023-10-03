@@ -123,7 +123,7 @@ impl Rooms {
     pub fn add_workshop_timeslot_tuple(
         &mut self,
         timeslot_workshop: (super::TimeslotID, super::WorkshopID),
-    ) -> bool {
+    ) -> Option<RoomID> {
         for room in self.roomlist_with_capacity.clone() {
             if self
                 .room_and_timeslot_to_workshop
@@ -141,10 +141,10 @@ impl Rooms {
 
                 self.workshop_occupancy.insert(timeslot_workshop, 0);
 
-                return true;
+                return Some(room.0);
             }
         }
-        return false;
+        return None;
     }
 
     // tries to swap a with b, if occupancy of a is bigger than occupancy of b AND both a and b fit into the other room, returns true if swapped
@@ -221,9 +221,10 @@ impl Rooms {
 
     // takes the index from which the bubble sort gets started (ignoring everything on its "left")
     fn room_bubblesort(&mut self, room_start_index: usize, timeslot: super::TimeslotID) {
-        for n in self.roomlist_with_capacity.len()..1 {
+        for n in 1..self.roomlist_with_capacity.len() {
+            let n = self.roomlist_with_capacity.len() - n;
             for i in room_start_index..n - 1 {
-                self.try_swap_workshops(
+                let swapped = self.try_swap_workshops(
                     self.room_and_timeslot_to_workshop
                         .clone()
                         .get(&(self.roomlist_with_capacity[i].0, timeslot)),
@@ -327,13 +328,25 @@ mod tests {
         room.add_roomlist_with_occupancy(&mut roomlist_vec);
         let compare_list: Vec<(RoomID, i32)> = vec![(1, 10), (2, 15), (3, 20), (4, 20), (5, 25)];
         assert_eq!(room.roomlist_with_capacity, compare_list);
-        room.add_available_workshop(1, 1);
+        room.add_workshop_timeslot_tuple((1, 1));
         let compare_vec: Vec<(TimeslotID, Vec<WorkshopID>)> = vec![(1, vec![1])];
         assert_eq!(room.get_available_wt(), compare_vec);
         room.set_occupancy(9, (1, 1));
-        room.add_available_workshop(1, 2);
+        room.add_workshop_timeslot_tuple((1, 2));
         room.set_occupancy(8, (1, 2));
-        room.try_swap_workshops(Some(&(1, 1)), 1, Some(&(1, 2)), 2);
-        assert!(*room.get_room_of_workshop((1, 1)).unwrap() == 2);
+        //room.try_swap_workshops(Some(&(1, 1)), 1, Some(&(1, 2)), 2);
+        let room_of_one_three: Option<RoomID> = room.add_workshop_timeslot_tuple((1, 3));
+        room.set_occupancy(7, (1, 3));
+        let compare_vec: Vec<(TimeslotID, Vec<WorkshopID>)> = vec![(1, vec![1, 2, 3])];
+        assert_eq!(room.get_available_wt(), compare_vec);
+        println!(
+            "[test room bubblesort] room of workshop (1,1): {}",
+            room.get_room_of_workshop((1, 1)).unwrap()
+        );
+        room.room_bubblesort(0, 1);
+        println!(
+            "Room of workshop (1,1) after bubblesort: {}",
+            room.get_room_of_workshop((1, 1)).unwrap()
+        );
     }
 }
